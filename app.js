@@ -269,8 +269,64 @@ const addDepartment = () => {
 
         db.query(sql, input.addDepartment, (err, results) => {
             if (err) throw err;
-            console.log(`${input.addDepartment} department has been created.`);
+            console.log(`${input.addDepartment} department has been added.`);
             addToDB()
+        })
+    })
+}
+
+const addRole = () => {
+    return inquirer.prompt([
+        {
+            type: 'text',
+            name: 'roleName',
+            message: 'Please enter the name of the new role.',
+            validate: input => {
+                if (input) {
+                    return true;
+                } else {
+                    console.log('Please input a valid name!');
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'number',
+            name: 'roleSalary',
+            message: "Please enter the role's salary, using numbers only.",
+            validate: input => {
+                if (input) {
+                    return true;
+                } else {
+                    console.log('Please input a valid salary!');
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'number',
+            name: 'roleDeptId',
+            message: "Please enter the id of the role's department.",
+            validate: input => {
+                if (input) {
+                    return true;
+                } else {
+                    console.log('Please input a valid id!');
+                    return false;
+                }
+            }
+        }
+    ]).then(response => {
+        const sql = `
+        INSERT INTO roles (title, salary, department_id)
+        VALUES (?,?,?)
+        `;
+        const values = [response.roleName, response.roleSalary, response.roleDeptId];
+
+        db.query(sql, values, (err, results) => {
+            if (err) throw err;
+            console.log(`${response.roleName} has been added.`);
+            addToDB();
         })
     })
 }
