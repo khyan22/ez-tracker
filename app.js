@@ -26,7 +26,7 @@ const app = () => {
                 'View all roles',
                 'View all managers',
                 'View employees',
-                'Add to database',
+                'Update database',
                 'View total salary expenditure'
             ]
         }
@@ -44,9 +44,11 @@ const app = () => {
             case 'View employees':
                 getEmployees();
                 break;
-            case 'Add to database':
-                console.log('case log')
-                addToDB();
+            case 'Update database':
+                updateDB();
+                break;
+            case 'View total salary expenditure':
+                getExpenditure();
                 break;
         }
     })
@@ -206,24 +208,24 @@ const getEmployees = () => {
     })
 }
 
-
-const addToDB = () => {
+const updateDB = () => {
     return inquirer.prompt([
         {
             type: 'list',
-            name: 'addDB',
+            name: 'updateDB',
             message: 'what data would you like to add?',
             choices: [
                 'Add department',
                 'Add role',
                 'Add employee',
-                'Update an employee',
-                "Update an employee's manager",
+                'Delete department',
+                'Delete role',
+                'Delete employee',
                 'Back'
             ]
         }
     ]).then(input => {
-        switch (input.addDB) {
+        switch (input.updateDB) {
             case 'Add department':
                 addDepartment();
                 break;
@@ -233,11 +235,14 @@ const addToDB = () => {
             case 'Add employee':
                 addEmployee();
                 break;
-            case 'Update an employee':
-                updateEmployee();
+            case 'Delete department':
+                deleteDept();
                 break;
-            case"Update an employee's manager":
-                updateEmployeeManager();
+            case 'Delete role':
+                deleteRole();
+                break;
+            case 'Delete employee':
+                deleteEmployee();
                 break;
             case 'Back':
                 app();
@@ -270,7 +275,7 @@ const addDepartment = () => {
         db.query(sql, input.addDepartment, (err, results) => {
             if (err) throw err;
             console.log(`${input.addDepartment} department has been added.`);
-            addToDB()
+            updateDB()
         })
     })
 }
@@ -326,9 +331,117 @@ const addRole = () => {
         db.query(sql, values, (err, results) => {
             if (err) throw err;
             console.log(`${response.roleName} has been added.`);
-            addToDB();
+            updateDB();
         })
     })
+}
+
+const addEmployee = () => {
+    return inquirer.prompt([
+        {
+            type: 'text',
+            name: 'firstName',
+            message: "Please enter the employee's first name.",
+            validate: input => {
+                if (input) {
+                    return true;
+                } else {
+                    console.log('Please enter a valid name!');
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'text',
+            name: 'lastName',
+            message: "Please enter the employee's last name.",
+            validate: input => {
+                if (input) {
+                    return true;
+                } else {
+                    console.log('Please enter a valid name!');
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'number',
+            name: 'roleId',
+            message: "Please enter the employee's role id.",
+            validate: input => {
+                if (input) {
+                    return true;
+                } else {
+                    console.log('Please enter a valid role id!');
+                    return false;
+                }
+            }
+        },
+        {
+            type: 'number',
+            name: 'managerId',
+            message: "Please enter the employee's manager id.",
+            validate: input => {
+                if (input) {
+                    return true;
+                } else {
+                    console.log('Please enter a valid Manager id!')
+                }
+            }
+        }
+    ]).then(response => {
+        const sql = `
+        INSERT INTO employees (first_name, last_name, role_id, manager_id)
+        VALUES (?,?,?,?)
+        `;
+        const values = [response.firstName, response.lastName, response.roleId, response.managerId]
+
+        db.query(sql, values, (err, results) => {
+            if (err) throw err;
+            console.log(`${response.firstName} has been added.`)
+            updateDB();
+        });
+    });
+};
+
+const deleteDept = () => {
+
+}
+
+const deleteRole = () => {
+
+}
+
+const deleteEmployee = () => {
+    const sqlGetNames = `
+    SELECT * FROM employees
+    `;
+    db.query(sqlGetNames, (err, results) => {
+        if (err) throw err;
+        const employees = results.map(({id, first_name, last_name}) => ({name: first_name + ' ' + last_name, value: id}))
+        return inquirer.prompt([
+            {
+                type: 'list', 
+                name: 'name',
+                message: 'Please select what employee you would like to delete.',
+                choices: employees
+            }
+        ]).then(input => {
+            const employee = input.name;
+            const sqlDelete = `
+            DELETE FROM employees WHERE id = ?
+            `;
+            db.query(sqlDelete, employee, (err, result) => {
+                if (err) throw err;
+                console.log('Employee deleted.')
+                updateDB();
+            })
+        })   
+    })
+}
+
+const getExpenditure = () => {
+
 }
 
 app()
