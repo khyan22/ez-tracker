@@ -405,7 +405,31 @@ const addEmployee = () => {
 };
 
 const deleteDept = () => {
-
+    const sqlGetNames = `
+    SELECT * FROM departments
+    `;
+    db.query(sqlGetNames, (err, results) => {
+        if (err) throw err;
+        const departments = results.map(({id, name}) => ({name: name, value: id}));
+        return inquirer.prompt([
+            {
+                type: 'list',
+                name: 'name',
+                message: 'Please select which department you would like to delete.',
+                choices: departments
+            }
+        ]).then(input => {
+        const sqlDelete = `
+        DELETE FROM departments WHERE id = ?
+        `;
+        const department = input.name;
+        db.query(sqlDelete, department, (err, results) => {
+            if (err) throw err;
+            console.log('Department deleted.')
+            updateDB();
+        })
+    })
+    })
 }
 
 const deleteRole = () => {
@@ -423,7 +447,7 @@ const deleteEmployee = () => {
             {
                 type: 'list', 
                 name: 'name',
-                message: 'Please select what employee you would like to delete.',
+                message: 'Please select which employee you would like to delete.',
                 choices: employees
             }
         ]).then(input => {
