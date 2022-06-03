@@ -44,6 +44,10 @@ const app = () => {
             case 'View employees':
                 getEmployees();
                 break;
+            case 'Add to database':
+                console.log('case log')
+                addToDB();
+                break;
         }
     })
 };
@@ -201,6 +205,8 @@ const getEmployees = () => {
         }
     })
 }
+
+
 const addToDB = () => {
     return inquirer.prompt([
         {
@@ -212,11 +218,61 @@ const addToDB = () => {
                 'Add role',
                 'Add employee',
                 'Update an employee',
-                "Update an employee's manager"
+                "Update an employee's manager",
+                'Back'
             ]
         }
-    ])
+    ]).then(input => {
+        switch (input.addDB) {
+            case 'Add department':
+                addDepartment();
+                break;
+            case 'Add role':
+                addRole()
+                break;
+            case 'Add employee':
+                addEmployee();
+                break;
+            case 'Update an employee':
+                updateEmployee();
+                break;
+            case"Update an employee's manager":
+                updateEmployeeManager();
+                break;
+            case 'Back':
+                app();
+                break;
+        }
+    })
 }
 
+const addDepartment = () => {
+    return inquirer.prompt([
+        {
+            type: 'text',
+            name: 'addDepartment',
+            message: 'Place enter the name of the new department.',
+            validate: input => {
+                if (input) {
+                    return true;
+                } else { 
+                    console.log('Please enter a valid name!');
+                    return false;
+                }
+            }
+        }
+    ]).then(input => {
+        const sql = `
+        INSERT INTO departments (name)
+        VALUES (?)
+        `;
+
+        db.query(sql, input.addDepartment, (err, results) => {
+            if (err) throw err;
+            console.log(`${input.addDepartment} department has been created.`);
+            addToDB()
+        })
+    })
+}
 
 app()
