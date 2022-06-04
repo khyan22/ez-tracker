@@ -27,7 +27,7 @@ const app = () => {
                 'View all managers',
                 'View employees',
                 'Update database',
-                'View total salary expenditure'
+                'View budget'
             ]
         }
     ]).then(choice => {
@@ -47,8 +47,8 @@ const app = () => {
             case 'Update database':
                 updateDB();
                 break;
-            case 'View total salary expenditure':
-                getExpenditure();
+            case 'View budget':
+                getBudget();
                 break;
         }
     })
@@ -98,6 +98,7 @@ const getAllManagers = () => {
     })
 }
 
+//!update to list!!!!!!!!!!!!!!!!!!!!!
 const getEmployees = () => {
     return inquirer.prompt([
         {
@@ -218,6 +219,8 @@ const updateDB = () => {
                 'Add department',
                 'Add role',
                 'Add employee',
+                'Update employee role',
+                'Update employee manager',
                 'Delete department',
                 'Delete role',
                 'Delete employee',
@@ -234,6 +237,12 @@ const updateDB = () => {
                 break;
             case 'Add employee':
                 addEmployee();
+                break;
+            case 'Update employee role':
+                updateEmployeeRole();
+                break;
+            case 'Update employee manager':
+                updateEmployeeManager();
                 break;
             case 'Delete department':
                 deleteDept();
@@ -380,21 +389,19 @@ const addEmployee = () => {
         {
             type: 'number',
             name: 'managerId',
-            message: "Please enter the employee's manager id.",
-            validate: input => {
-                if (input) {
-                    return true;
-                } else {
-                    console.log('Please enter a valid Manager id!')
-                }
-            }
+            message: "Please enter the employee's manager id, if the employee is a manager leave blank"
         }
     ]).then(response => {
         const sql = `
         INSERT INTO employees (first_name, last_name, role_id, manager_id)
         VALUES (?,?,?,?)
         `;
-        const values = [response.firstName, response.lastName, response.roleId, response.managerId]
+        let values
+        if (!response.managerId) {
+            values = [response.firstName, response.lastName, response.roleId, null];
+        } else {
+            values = [response.firstName, response.lastName, response.roleId, response.managerId];
+        }
 
         db.query(sql, values, (err, results) => {
             if (err) throw err;
@@ -403,6 +410,95 @@ const addEmployee = () => {
         });
     });
 };
+
+const updateEmployeeRole = () => {
+    const sqlEmployees = `
+    SELECT * FROM employees
+    `;
+
+    db.query(sqlEmployees, (err, results) => {
+        if (err) throw err;
+        const employees = results.map(({id,first_name, last_name }) => ({name: first_name + ' ' + last_name, value: id}))
+        return inquirer.prompt({
+
+            type: 'list',
+            name: 'name',
+            message: 'Which employee would you like to update?',
+            choices: employees
+
+        }).then(input => {
+            const sql = `
+            SELECT * FROM roles
+            `;
+
+            db.query(sql, (err, results) => {
+                if (err) throw err;
+                const employeeName = input.name
+                const roles = results.map(({id, title}) => ({name: title, value: id}))
+                return inquirer.prompt([
+                    {
+                        type: 'list',
+                        name: 'newRole',
+                        message: "What's the employees new role?",
+                        choices: roles
+                    }
+                ]).then(inputs => {
+                    const sqlUpdate = `
+                    UPDATE employees
+                    SET role_id = ?
+                    WHERE id = ?
+                    `;
+                    const params = [inputs.newRole, employeeName];
+
+                    db.query(sqlUpdate, params, (err, results) => {
+                        if (err) throw err;
+                        console.log("Employee's role has been updated.");
+                        updateDB();
+                    });
+                });
+            });
+        });
+    });
+};
+
+const updateEmployeeManager = () => {
+    const sqlEmployees = `
+        SELECT * FROM employees
+    `;
+
+    db.query(sqlEmployees, (err, results) => {
+        if (err) throw err;
+        const employees = results.map(({id,first_name, last_name }) => ({name: first_name + ' ' + last_name, value: id}))
+        return inquirer.prompt([
+            {
+                type: 'list',
+                name: 'name',
+                message: 'Which employee would you like to update?',
+                choices: employees
+            },
+            {
+                type: 'number',
+                name: 'manager',
+                message: "Please enter the id of the employee's new manager",
+            }
+        ]).then(input => {
+            const sql = `UPDATE employees SET manager_id = ? WHERE id = ?`
+            let params
+            if (!input.manager) {
+                params = [null, input.name];            
+            } else {
+                params = [input.manager, input.name];    
+            }
+
+            db.query(sql, params, (err, result) => {
+                if (err) throw err
+                console.log("Employee's manager updated successfully.")
+                app()
+            })
+        })
+    })
+};
+
 
 const deleteDept = () => {
     const sqlGetNames = `
@@ -419,22 +515,47 @@ const deleteDept = () => {
                 choices: departments
             }
         ]).then(input => {
-        const sqlDelete = `
-        DELETE FROM departments WHERE id = ?
-        `;
-        const department = input.name;
-        db.query(sqlDelete, department, (err, results) => {
-            if (err) throw err;
-            console.log('Department deleted.')
-            updateDB();
+            const sqlDelete = `
+            DELETE FROM departments WHERE id = ?
+            `;
+            const department = input.name;
+            db.query(sqlDelete, department, (err, results) => {
+                if (err) throw err;
+                console.log('Department deleted.');
+                updateDB();
+            })
         })
-    })
     })
 }
 
 const deleteRole = () => {
+    const sqlGetRole = `
+    SELECT * FROM roles
+    `;
 
-}
+    db.query(sqlGetRole, (err, results) => {
+        if (err) throw err;
+        const roles = results.map(({id, title}) => ({name: title, value: id}));
+        return inquirer.prompt([
+            {
+                type: 'list',
+                name: 'name',
+                message: 'Please select which role you want to delete.',
+                choices: roles
+            }
+        ]).then(input => {
+            const sqlDelete = `
+            DELETE FROM roles WHERE id = ?
+            `;
+            const role = input.name;
+            db.query(sqlDelete, role, (err, results) => {
+                if (err) throw err;
+                console.log(`Role has been deleted.`);
+                updateDB();
+            });
+        });
+    });
+};
 
 const deleteEmployee = () => {
     const sqlGetNames = `
@@ -457,15 +578,32 @@ const deleteEmployee = () => {
             `;
             db.query(sqlDelete, employee, (err, result) => {
                 if (err) throw err;
-                console.log('Employee deleted.')
+                console.log('Employee deleted.');
                 updateDB();
             })
         })   
     })
 }
 
-const getExpenditure = () => {
-
+const getBudget = () => {
+    const sql = `SELECT * FROM departments`
+    db.query(sql, (err, result) => {
+        if (err) throw err;
+        const departments = result.map(({ id, name }) => ({ name: name, value: id}))
+        inquirer.prompt({
+            type: 'list',
+            name: 'dept',
+            message: "Select department who's budget you would like to view.",
+            choices: departments
+        }).then(choice => {
+            const sql = `SELECT SUM(salary) AS budget FROM roles WHERE department_id = ?`;
+            db.query(sql, choice.dept, (err, rows) => {
+                if (err) throw err;
+                console.table(rows)
+                app()
+            })
+        })
+    })
 }
 
 app()
