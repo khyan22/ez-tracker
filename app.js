@@ -88,7 +88,7 @@ const getAllManagers = () => {
     FROM employees 
     LEFT JOIN roles
     ON employees.role_id = roles.id
-    WHERE employees.id <= 3
+    WHERE employees.manager_id IS NULL
     `;
 
     db.query(sql, (err, results) => {
@@ -98,7 +98,6 @@ const getAllManagers = () => {
     })
 }
 
-//!update to list!!!!!!!!!!!!!!!!!!!!!
 const getEmployees = () => {
     return inquirer.prompt([
         {
@@ -133,6 +132,11 @@ const getEmployees = () => {
                 });
                 break;
             case 'View employee by manager':
+                const sqlViewByManager = `
+                SELECT *
+                `;
+
+
                 inquirer.prompt([
                     {
                         type: 'number',
@@ -607,3 +611,5 @@ const getBudget = () => {
 }
 
 app()
+
+module.exports = app;
